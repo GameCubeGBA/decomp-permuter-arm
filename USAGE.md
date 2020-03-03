@@ -18,7 +18,7 @@ does all this for you. See README.md for more details.
     \label:
 .endm
 ```
-* `mips-linux-gnu-as -march=vr4300 -mabi=32 <dir>/target.s -o <dir>/target.o`
+* `arm-none-eabi-as -mthumb -mthumb-interwork -mcpu=arm7tdmi <dir>/target.s -o <dir>/target.o`
 * optional sanity checks:
   - `<dir>/compile.sh <dir>/base.c -o <dir>/base.o`
   - `./diff.sh <dir>/target.o <dir>/base.o`

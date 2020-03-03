@@ -37,30 +37,11 @@ class ArchSettings:
 
 
 MIPS_BRANCH_LIKELY_INSTRUCTIONS = {
-    "beql",
-    "bnel",
-    "beqzl",
-    "bnezl",
-    "bgezl",
-    "bgtzl",
-    "blezl",
-    "bltzl",
-    "bc1tl",
-    "bc1fl",
+    'swi', 'bkpt',
 }
 MIPS_BRANCH_INSTRUCTIONS = {
-    "b",
-    "j",
-    "beq",
-    "bne",
-    "beqz",
-    "bnez",
-    "bgez",
-    "bgtz",
-    "blez",
-    "bltz",
-    "bc1t",
-    "bc1f",
+    'b', 'beq', 'bne', 'bcs', 'bcc', 'bhs', 'blo', 'bmi', 'bpl', 'bvs', 'bvc', 'bhi', 'bls', 'bge', 'blt', 'bgt', 'ble',
+    'bl', 'bx', 'blx',
 }.union(MIPS_BRANCH_LIKELY_INSTRUCTIONS)
 
 MIPS_SETTINGS: ArchSettings = ArchSettings(
@@ -70,21 +51,14 @@ MIPS_SETTINGS: ArchSettings = ArchSettings(
     ),
     re_sprel=re.compile(r"(?<=,)([0-9]+|0x[0-9a-f]+)\((sp|s8)\)"),
     re_includes_sp=re.compile(r"\b(sp|s8)\b"),
-    objdump=["mips-linux-gnu-objdump", "-drz", "-m", "mips:4300"],
+    objdump = ['arm-none-eabi-objdump', '-drz'],
     branch_likely_instructions=MIPS_BRANCH_LIKELY_INSTRUCTIONS,
     branch_instructions=MIPS_BRANCH_INSTRUCTIONS,
 )
 
 
 def get_arch(o_file: str) -> ArchSettings:
-    # https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.eheader.html
-    with open(o_file, "rb") as f:
-        f.seek(18)
-        arch_magic = f.read(2)
-    if arch_magic == b"\0\x08":
-        return MIPS_SETTINGS
-    # TODO: support PPC ("\0\x14"), ARM ("0\x28")
-    raise Exception("Bad ELF")
+    return MIPS_SETTINGS
 
 
 def parse_relocated_line(line: str) -> Tuple[str, str, str]:
@@ -116,7 +90,7 @@ def simplify_objdump(
         row = row.rstrip()
         if ">:" in row or not row:
             continue
-        if "R_MIPS_" in row:
+        if "R_ARM_" in row:
             prev = output_lines[-1]
             if prev == "<skipped>":
                 continue
@@ -132,20 +106,17 @@ def simplify_objdump(
             # since it's rare and applies consistently. But we do need to handle it
             # here to avoid a crash, by pretending that lost imms are zero for
             # relocations.
-            if imm != "0" and imm != "imm" and imm != "addr":
-                repl += "+" + imm if int(imm, 0) > 0 else imm
-            if any(
-                reloc in row
-                for reloc in ["R_MIPS_LO16", "R_MIPS_LITERAL", "R_MIPS_GPREL16"]
-            ):
-                repl = f"%lo({repl})"
-            elif "R_MIPS_HI16" in row:
-                # Ideally we'd pair up R_MIPS_LO16 and R_MIPS_HI16 to generate a
+            if imm != '0' and imm != 'imm' and imm != 'addr':
+                repl += '+' + imm if int(imm,0) > 0 else imm
+            if 'R_ARM_THM_CALL' in row:
+                repl = f'%thumb({repl})'
+            elif 'R_ARM_CALL' in row or 'R_ARM_JUMP24' in row:
+                # Ideally we'd pair up R_ARM_LO16 and R_ARM_HI16 to generate a
                 # correct addend for each, but objdump doesn't give us the order of
                 # the relocations, so we can't find the right LO16. :(
-                repl = f"%hi({repl})"
+                repl = f'%arm({repl})'
             else:
-                assert "R_MIPS_26" in row, f"unknown relocation type '{row}'"
+                assert f"unknown relocation type '{row}'"
             output_lines[-1] = before + repl + after
             continue
         row = re.sub(arch.re_comment, "", row)

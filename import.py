@@ -51,7 +51,7 @@ ASM_PRELUDE: str = """
 .endm
 """
 
-DEFAULT_AS_CMDLINE: List[str] = ["mips-linux-gnu-as", "-march=vr4300", "-mabi=32"]
+DEFAULT_AS_CMDLINE: List[str] = ["arm-none-eabi-as", "-march=armv4t", "-mthumb-interwork"]
 
 CPP: List[str] = [cpp_cmd, "-P", "-undef"]
 
