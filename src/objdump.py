@@ -51,7 +51,7 @@ MIPS_SETTINGS: ArchSettings = ArchSettings(
     ),
     re_sprel=re.compile(r"(?<=,)([0-9]+|0x[0-9a-f]+)\((sp|s8)\)"),
     re_includes_sp=re.compile(r"\b(sp|s8)\b"),
-    objdump = ['arm-none-eabi-objdump', '-drz'],
+    objdump = ['arm-none-eabi-objdump', '-drz', '-m','armv4t'],
     branch_likely_instructions=MIPS_BRANCH_LIKELY_INSTRUCTIONS,
     branch_instructions=MIPS_BRANCH_INSTRUCTIONS,
 )
